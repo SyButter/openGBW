@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-
-
+#include "config.hpp"
 #include "display.hpp"
 #include "scale.hpp"
+#include "rotary.hpp" // Add this to access setupRotary and other rotary methods
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -17,30 +17,10 @@ long lastReconnectAttempt = 0;
 
 void setup() {
   Serial.begin(115200);
-  while(!Serial){delay(100);}
-
-  
   setupDisplay();
   setupScale();
-
-  Serial.println();
-  Serial.println("******************************************************");
-  // Serial.print("Connecting to ");
-  // Serial.println(ssid);
-
-  // WiFi.begin(ssid, password);
-
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
-
-  // Serial.println("");
-  // Serial.println("WiFi connected");
-  // Serial.println("IP address: ");
-  // Serial.println(WiFi.localIP());
-  // lastReconnectAttempt = 0;
-  // client.setServer("192.168.1.201", 1883);
+  setupRotary();
+  Serial.println("System Initialized");
 }
 
 boolean reconnect() {
@@ -52,18 +32,7 @@ boolean reconnect() {
 }
 
 void loop() {
-  // if (!client.connected()) {
-  //   long now = millis();
-  //   if (now - lastReconnectAttempt > 5000) {
-  //     lastReconnectAttempt = now;
-  //     // Attempt to reconnect
-  //     if (reconnect()) {
-  //       lastReconnectAttempt = 0;
-  //     }
-  //   }
-  // } else {
-  //   client.loop();
-  // }
-  //rotary_loop();
-  delay(1000);
+    handleRotary();
+    // Add other non-blocking tasks if needed
+    delay(10); // Prevent excessive CPU usage
 }
