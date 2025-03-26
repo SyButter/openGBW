@@ -12,3 +12,4 @@ void showDebugModeStatus(bool debugMode);
 void showDebugMenu();
 void handleDebugMenuAction();
 void showIpAddress();
+void CenterConfirmationPrintToScreen(char const *str, u8g2_uint_t y);

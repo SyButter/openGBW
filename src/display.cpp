@@ -3,6 +3,7 @@
 #include "web_server.hpp"
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C screen(U8G2_R0);
+
 TaskHandle_t DisplayTask;
 extern String currentIPAddress;
 
@@ -13,6 +14,16 @@ bool screenJustWoke = false;
 // Function to center-align and print text to the screen
 void CenterPrintToScreen(char const *str, u8g2_uint_t y)
 {
+  u8g2_uint_t width = screen.getStrWidth(str); // Calculate the text width
+  screen.setCursor(128 / 2 - width / 2, y);    // Set the cursor position for center alignment
+  screen.print(str);                           // Print the text
+}
+
+// Function to center-align and print text to the screen
+void CenterConfirmationPrintToScreen(char const *str, u8g2_uint_t y)
+{
+  screen.clearBuffer();
+  screen.setFont(u8g2_font_7x14B_tf);
   u8g2_uint_t width = screen.getStrWidth(str); // Calculate the text width
   screen.setCursor(128 / 2 - width / 2, y);    // Set the cursor position for center alignment
   screen.print(str);                           // Print the text
@@ -266,9 +277,9 @@ void showCalibrationMenu()
   screen.setFont(u8g2_font_7x14B_tf);           // Set the font for the menu title
   CenterPrintToScreen("Calibration", 0);        // Print the menu title
   screen.setFont(u8g2_font_7x13_tr);            // Set the font for the instructions
-  CenterPrintToScreen("Place 100g weight", 19); // Print instructions
-  CenterPrintToScreen("on scale and", 35);      // Print instructions
-  CenterPrintToScreen("press button", 51);      // Print instructions
+  CenterPrintToScreen("Serial Out needed", 19); // Print instructions
+  CenterPrintToScreen("click button", 35);      // Print instructions
+  CenterPrintToScreen("when ready", 51);      // Print instructions
   screen.sendBuffer();                          // Send the buffer to the display
 }
 

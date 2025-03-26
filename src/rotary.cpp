@@ -20,12 +20,14 @@ int encoderValue = 0; // Current value of the rotary encoder
 static int clickCount = 0;
 const unsigned long clickThreshold = 500; // 500ms max interval for rapid clicks
 
-static void handleSingleClickTask(void *param) {
+static void handleSingleClickTask(void *param)
+{
     bool *pendingFlag = reinterpret_cast<bool *>(param);
     delay(300); // Wait for the delay period
 
     // Ensure the task only acts if `scaleStatus` is valid for the menu
-    if (*pendingFlag && scaleStatus == STATUS_EMPTY) {
+    if (*pendingFlag && scaleStatus == STATUS_EMPTY)
+    {
         *pendingFlag = false;
         Serial.println("Single click detected. Opening menu...");
         scaleStatus = STATUS_IN_MENU;
@@ -165,7 +167,6 @@ void rotary_onButtonClick()
         {
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 1;
-            tareScale();
             Serial.println("Calibration Menu");
             break;
         }
@@ -200,6 +201,9 @@ void rotary_onButtonClick()
             currentMenuItem = 0;                // Reset menu index
             rotaryEncoder.setAcceleration(100); // Restore encoder acceleration
             Serial.println("Exited Menu to main screen");
+            Serial.print("Exiting menu, scaleStatus: ");
+            Serial.println(scaleStatus);
+
             delay(200); // Debounce to prevent immediate re-trigger
             break;
         case 8: // Reset Menu
@@ -226,9 +230,24 @@ void rotary_onButtonClick()
         {
             if (scaleWeight > 5)
             { // Ensure cup weight is valid
-                setCupWeight = scaleWeight;
-                Serial.println(setCupWeight);
 
+                double stableCupWeight = scaleWeight;
+                unsigned long startTime = millis();
+                bool weightStable = false;
+
+                while (millis() - startTime < 1500) // Increased stability time
+                {
+                    if (abs(scaleWeight - stableCupWeight) > 0.2) // Adjusted sensitivity
+                    {
+                        Serial.println("⚠️ Cup weight fluctuating... Restarting measurement.");
+                        startTime = millis();
+                        stableCupWeight = scaleWeight;
+                    }
+                }
+
+                // If weight is stable, save it
+                setCupWeight = scaleWeight;
+                Serial.println("✅ Cup weight stabilized and saved.");
                 preferences.begin("scale", false);
                 preferences.putDouble("cup", setCupWeight);
                 preferences.end();
@@ -253,13 +272,58 @@ void rotary_onButtonClick()
         }
         case 1: // Calibration Menu
         {
-            double newCalibrationValue = preferences.getDouble("calibration", 1.0) * (scaleWeight / 100);
+            // 🔹 Force proper tare
+            delay(500);
+            Serial.println("\n🔹 SCALE SETUP operation...");
+            Serial.println("\n🔹 Initializing scale...");
+
+            delay(7000); // Allow settling time
+            Serial.println("\n🔹 Taring scale...");
+            loadcell.tare();
+            delay(2000); // Allow settling time
+
+            Serial.print("✅ Post-Tare ADC Value: ");
+            Serial.println(loadcell.get_units(10)); // Check tare effectiveness
+
+            Serial.println("\n⚠️  Place your known weight on the scale NOW...");
+            delay(5000); // Give time to place weight
+
+            double beforeWeight = loadcell.read(); // Read ADC before adding weight
+            Serial.print("🔹 Raw ADC Value BEFORE weight: ");
+            Serial.println(beforeWeight);
+
+            Serial.println("\n⚠️  Now REMOVE the weight...");
+            delay(5000); // Give time to remove weight
+
+            double afterWeight = loadcell.read(); // Read ADC after removing weight
+            Serial.print("🔹 Raw ADC Value AFTER weight: ");
+            Serial.println(afterWeight);
+
+            double adcDifference = abs(afterWeight - beforeWeight);
+            Serial.print("\n🔹 ADC Difference: ");
+            Serial.println(adcDifference);
+
+            // 🔹 Compute corrected scale factor
+            double newScaleFactor = adcDifference / 49.1; // Knife weight = 49.1g
+            Serial.print("\n✅ New computed scale factor: ");
+            Serial.println(newScaleFactor);
+
+            // 🔹 Save new calibration factor
             preferences.begin("scale", false);
-            preferences.putDouble("calibration", newCalibrationValue);
+            preferences.putDouble("calibration", newScaleFactor);
             preferences.end();
-            loadcell.set_scale(newCalibrationValue);
-            scaleStatus = STATUS_IN_MENU;
-            currentSetting = -1;
+
+            loadcell.set_scale(newScaleFactor); // Apply new scale factor
+
+            Serial.println("\n🚀 Final scale setup complete.");
+
+            // Confirm on display
+            displayLock = true;
+            CenterConfirmationPrintToScreen("Calibrated!", 32);
+            delay(2000);
+            displayLock = false;
+
+            exitToMenu(); // Exit back to menu after calibration
             break;
         }
         case 2: // Offset Menu
@@ -473,7 +537,7 @@ void rotary_loop()
             Serial.println("Exiting Grinding Failed state to Main Menu...");
             scaleStatus = STATUS_IN_MENU;
             currentMenuItem = 0; // Reset to the main menu
-            return; // Exit early to avoid further processing
+            return;              // Exit early to avoid further processing
         }
         }
     }

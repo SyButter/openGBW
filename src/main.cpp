@@ -11,7 +11,7 @@
 // Definitions of global variables (memory allocated here)
 Preferences preferences;             // Preferences object
 HX711 loadcell;                      // HX711 load cell object
-SimpleKalmanFilter kalmanFilter(0.02, 0.02, 0.01); // Kalman filter for weight smoothing
+SimpleKalmanFilter kalmanFilter(0.05, 0.05, 0.01); // Kalman filter for weight smoothing
 
 TaskHandle_t ScaleTask = nullptr;    // Initialize task handles to nullptr
 TaskHandle_t ScaleStatusTask = nullptr;
